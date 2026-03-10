@@ -461,7 +461,7 @@ class RadarGUI:
         self.gps_label.grid(row=1, column=0, columnspan=4, sticky='w', padx=5, pady=2)
         
         # Pitch display
-        self.pitch_label = ttk.Label(control_frame, text="Pitch: --.--°")
+        self.pitch_label = ttk.Label(control_frame, text="Pitch: --.--Â°")
         self.pitch_label.grid(row=1, column=4, columnspan=2, padx=5, pady=2)
         
         # Status info with FT601 specific info
@@ -613,4 +613,5 @@ def main():
         messagebox.showerror("Fatal Error", f"Application failed to start: {e}")
 
 if __name__ == "__main__":
+
     main()
