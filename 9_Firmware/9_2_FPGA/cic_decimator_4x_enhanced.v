@@ -97,14 +97,18 @@ always @(posedge clk or negedge reset_n) begin
             overflow_latched <= 1'b1;
             saturation_detected <= 1'b1;
             saturation_event_count <= saturation_event_count + 1;
+            `ifdef SIMULATION
             $display("CIC_SATURATION: Positive overflow at sample %0d", sample_count);
+            `endif
         end else if (integrator[0] + $signed({{18{data_in[17]}}, data_in}) < -(2**35)) begin
             integrator[0] <= -(2**35);
             overflow_detected <= 1'b1;
             overflow_latched <= 1'b1;
             saturation_detected <= 1'b1;
             saturation_event_count <= saturation_event_count + 1;
+            `ifdef SIMULATION
             $display("CIC_SATURATION: Negative overflow at sample %0d", sample_count);
+            `endif
         end else begin
             integrator[0] <= integrator[0] + $signed({{18{data_in[17]}}, data_in});
             overflow_detected <= 1'b0;  // Only clear immediate detection, not latched
@@ -248,15 +252,19 @@ always @(posedge clk or negedge reset_n) begin
             overflow_latched <= 1'b1;
             saturation_detected <= 1'b1;
             saturation_event_count <= saturation_event_count + 1;
+            `ifdef SIMULATION
             $display("CIC_OUTPUT_SAT: TRUE Positive saturation, raw=%h, scaled=%h, temp_out=%d, final_out=%d", 
                      comb[STAGES-1], temp_scaled_output, temp_output, 131071);
+            `endif
         end else if (temp_scaled_output < -131072) begin  // -2^17
             data_out <= -131072;
             overflow_latched <= 1'b1;
             saturation_detected <= 1'b1;
             saturation_event_count <= saturation_event_count + 1;
+            `ifdef SIMULATION
             $display("CIC_OUTPUT_SAT: TRUE Negative saturation, raw=%h, scaled=%h, temp_out=%d, final_out=%d", 
                      comb[STAGES-1], temp_scaled_output, temp_output, -131072);
+            `endif
         end else begin
             // FIXED: Use the properly truncated 18-bit value
             data_out <= temp_output;
@@ -281,11 +289,13 @@ always @(posedge clk or negedge reset_n) begin
 end
 
 // Continuous monitoring of saturation status
+`ifdef SIMULATION
 always @(posedge clk) begin
     if (overflow_detected && sample_count < 100) begin
         $display("CIC_OVERFLOW: Immediate detection at sample %0d", sample_count);
     end
 end
+`endif
 
 // Clear saturation on external reset
 always @(posedge reset_monitors) begin

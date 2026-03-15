@@ -63,6 +63,7 @@ assign ifft_valid = m_axis_data_tvalid;
 assign m_axis_data_tready = 1'b1;
 
 // Debug
+`ifdef SIMULATION
 reg [31:0] debug_counter;
 always @(posedge clk) begin
     debug_counter <= debug_counter + 1;
@@ -73,6 +74,7 @@ always @(posedge clk) begin
         end
     end
 end
+`endif
 
 // IFFT IP instance
 FFT_enhanced ifft_inverse_inst (  // Same IP core, different configuration

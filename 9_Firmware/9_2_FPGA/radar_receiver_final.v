@@ -371,15 +371,19 @@ always @(posedge clk or negedge reset_n) begin
         // Detect frame completion
         if (new_chirp_frame) begin
             frame_counter <= frame_counter + 1;
+            `ifdef SIMULATION
             $display("[TOP] Frame %0d started. Previous frame had %0d chirps", 
                      frame_counter, chirps_in_current_frame);
+            `endif
             chirps_in_current_frame <= 0;
         end
         
         // Monitor chirp counter pattern
         if (chirp_counter != chirp_counter_prev) begin
+            `ifdef SIMULATION
             $display("[TOP] chirp_counter: %0d ? %0d", 
                      chirp_counter_prev, chirp_counter);
+            `endif
         end
     end
 end

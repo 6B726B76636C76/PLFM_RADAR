@@ -43,17 +43,16 @@ localparam FOOTER = 8'h55;
 localparam FT601_DATA_WIDTH = 32;
 localparam FT601_BURST_SIZE = 512;    // Max burst size in bytes
 
-typedef enum {
-    IDLE,
-    SEND_HEADER,
-    SEND_RANGE_DATA,
-    SEND_DOPPLER_DATA,
-    SEND_DETECTION_DATA,
-    SEND_FOOTER,
-    WAIT_ACK
-} usb_state_t;
+// State definitions (Verilog-2001 compatible)
+localparam [2:0] IDLE                = 3'd0,
+                 SEND_HEADER         = 3'd1,
+                 SEND_RANGE_DATA     = 3'd2,
+                 SEND_DOPPLER_DATA   = 3'd3,
+                 SEND_DETECTION_DATA = 3'd4,
+                 SEND_FOOTER         = 3'd5,
+                 WAIT_ACK            = 3'd6;
 
-usb_state_t current_state;
+reg [2:0] current_state;
 reg [7:0] byte_counter;
 reg [31:0] data_buffer;
 reg [31:0] ft601_data_out;

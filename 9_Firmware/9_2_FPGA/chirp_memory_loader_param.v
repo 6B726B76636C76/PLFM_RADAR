@@ -31,45 +31,57 @@ module chirp_memory_loader_param #(
 
 // Initialize memory
 integer i;
-reg [799:0] debug_msg;
 
 initial begin
+    `ifdef SIMULATION
     if (DEBUG) begin
         $display("[MEM] Starting memory initialization for 4 long chirp segments");
     end
+    `endif
     
     // === LOAD LONG CHIRP - 4 SEGMENTS ===
     // Segment 0 (addresses 0-1023)
     $readmemh(LONG_I_FILE_SEG0, long_chirp_i, 0, 1023);
     $readmemh(LONG_Q_FILE_SEG0, long_chirp_q, 0, 1023);
+    `ifdef SIMULATION
     if (DEBUG) $display("[MEM] Loaded long chirp segment 0 (0-1023)");
+    `endif
     
     // Segment 1 (addresses 1024-2047)
     $readmemh(LONG_I_FILE_SEG1, long_chirp_i, 1024, 2047);
     $readmemh(LONG_Q_FILE_SEG1, long_chirp_q, 1024, 2047);
+    `ifdef SIMULATION
     if (DEBUG) $display("[MEM] Loaded long chirp segment 1 (1024-2047)");
+    `endif
     
     // Segment 2 (addresses 2048-3071)
     $readmemh(LONG_I_FILE_SEG2, long_chirp_i, 2048, 3071);
     $readmemh(LONG_Q_FILE_SEG2, long_chirp_q, 2048, 3071);
+    `ifdef SIMULATION
     if (DEBUG) $display("[MEM] Loaded long chirp segment 2 (2048-3071)");
+    `endif
     
     // Segment 3 (addresses 3072-4095)
     $readmemh(LONG_I_FILE_SEG3, long_chirp_i, 3072, 4095);
     $readmemh(LONG_Q_FILE_SEG3, long_chirp_q, 3072, 4095);
+    `ifdef SIMULATION
     if (DEBUG) $display("[MEM] Loaded long chirp segment 3 (3072-4095)");
+    `endif
     
     // === LOAD SHORT CHIRP ===
     // Load first 50 samples (0-49)
     $readmemh(SHORT_I_FILE, short_chirp_i);
     $readmemh(SHORT_Q_FILE, short_chirp_q);
+    `ifdef SIMULATION
     if (DEBUG) $display("[MEM] Loaded short chirp (0-49)");
+    `endif
     
     // Zero pad remaining 974 samples (50-1023)
     for (i = 50; i < 1024; i = i + 1) begin
         short_chirp_i[i] = 16'h0000;
         short_chirp_q[i] = 16'h0000;
     end
+    `ifdef SIMULATION
     if (DEBUG) $display("[MEM] Zero-padded short chirp from 50-1023");
     
     // === VERIFICATION ===
@@ -87,6 +99,7 @@ initial begin
         $display("  Short[49]:   I=%h Q=%h", short_chirp_i[49], short_chirp_q[49]);
         $display("  Short[50]:   I=%h Q=%h (zero-padded)", short_chirp_i[50], short_chirp_q[50]);
     end
+    `endif
 end
 
 // Memory access logic
@@ -105,20 +118,24 @@ always @(posedge clk or negedge reset_n) begin
                 ref_i <= long_chirp_i[long_addr];
                 ref_q <= long_chirp_q[long_addr];
                 
+                `ifdef SIMULATION
                 if (DEBUG && $time < 100) begin
                     $display("[MEM @%0t] Long chirp: seg=%b, addr=%d, I=%h, Q=%h",
                             $time, segment_select, long_addr,
                             long_chirp_i[long_addr], long_chirp_q[long_addr]);
                 end
+                `endif
             end else begin
                 // Short chirp (0-1023)
                 ref_i <= short_chirp_i[sample_addr];
                 ref_q <= short_chirp_q[sample_addr];
                 
+                `ifdef SIMULATION
                 if (DEBUG && $time < 100) begin
                     $display("[MEM @%0t] Short chirp: addr=%d, I=%h, Q=%h",
                             $time, sample_addr, short_chirp_i[sample_addr], short_chirp_q[sample_addr]);
                 end
+                `endif
             end
             mem_ready <= 1'b1;
         end else begin

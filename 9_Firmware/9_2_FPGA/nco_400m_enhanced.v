@@ -109,11 +109,12 @@ always @(posedge clk_400m or negedge reset_n) begin
     end
 end
 
-// Add this to ensure LUT is properly loaded:
+// Debug verification of LUT initialization (simulation only)
+`ifdef SIMULATION
 initial begin
-    // Wait a small amount of time for LUT initialization
     #10;
     $display("NCO: Sine LUT initialized with %0d entries", 64);
 end
+`endif
 
 endmodule

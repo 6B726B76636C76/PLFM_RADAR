@@ -15,7 +15,7 @@ module usb_packet_analyzer (
     output reg packet_valid,
     output reg [7:0] packet_type,
     output reg [31:0] packet_data,
-    output reg [31:0] error_count
+    output wire [31:0] error_count
 );
 
 // Packet structure
@@ -23,17 +23,15 @@ localparam HEADER = 8'hAA;
 localparam FOOTER = 8'h55;
 localparam HEADER_POS = 24;  // Header in bits [31:24]
 
-// States
-typedef enum {
-    ST_IDLE,
-    ST_HEADER,
-    ST_RANGE,
-    ST_DOPPLER,
-    ST_DETECTION,
-    ST_FOOTER
-} state_t;
+// States (Verilog-2001 compatible)
+localparam [2:0] ST_IDLE      = 3'd0,
+                 ST_HEADER    = 3'd1,
+                 ST_RANGE     = 3'd2,
+                 ST_DOPPLER   = 3'd3,
+                 ST_DETECTION = 3'd4,
+                 ST_FOOTER    = 3'd5;
 
-state_t current_state, next_state;
+reg [2:0] current_state, next_state;
 reg [7:0] byte_count;
 reg [31:0] error_reg;
 reg [31:0] packet_count;
@@ -55,8 +53,10 @@ always @(posedge clk or negedge reset_n) begin
                 if (usb_wr_strobe && usb_data[31:24] == HEADER) begin
                     current_state <= ST_HEADER;
                     packet_count <= packet_count + 1;
+                    `ifdef SIMULATION
                     $display("[USB_ANALYZER] Packet %0d started at time %0t", 
                              packet_count + 1, $time);
+                    `endif
                 end
             end
             
@@ -82,7 +82,9 @@ always @(posedge clk or negedge reset_n) begin
                         packet_data[7:0] <= usb_data[7:0];
                         current_state <= ST_DOPPLER;
                         byte_count <= 8'd0;
+                        `ifdef SIMULATION
                         $display("[USB_ANALYZER] Range data: 0x%08h", packet_data);
+                        `endif
                     end
                 end
             end
@@ -96,8 +98,10 @@ always @(posedge clk or negedge reset_n) begin
                         packet_data[15:0] <= usb_data[31:16];   // Doppler imag
                         current_state <= ST_DETECTION;
                         byte_count <= 8'd0;
+                        `ifdef SIMULATION
                         $display("[USB_ANALYZER] Doppler data: real=0x%04h, imag=0x%04h",
                                  packet_data[31:16], packet_data[15:0]);
+                        `endif
                     end
                 end
             end
@@ -106,7 +110,9 @@ always @(posedge clk or negedge reset_n) begin
                 if (usb_wr_strobe) begin
                     packet_type <= usb_data[0];
                     current_state <= ST_FOOTER;
+                    `ifdef SIMULATION
                     $display("[USB_ANALYZER] Detection: %b", usb_data[0]);
+                    `endif
                 end
             end
             
@@ -114,11 +120,15 @@ always @(posedge clk or negedge reset_n) begin
                 if (usb_wr_strobe) begin
                     if (usb_data[7:0] == FOOTER) begin
                         packet_valid <= 1'b1;
+                        `ifdef SIMULATION
                         $display("[USB_ANALYZER] Packet %0d valid, footer OK", packet_count);
+                        `endif
                     end else begin
                         error_reg <= error_reg + 1;
+                        `ifdef SIMULATION
                         $error("[USB_ANALYZER] Invalid footer: expected 0x55, got 0x%02h",
                                usb_data[7:0]);
+                        `endif
                     end
                     current_state <= ST_IDLE;
                 end

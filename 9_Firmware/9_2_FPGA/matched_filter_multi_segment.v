@@ -41,7 +41,7 @@ module matched_filter_multi_segment (
 // ========== FIXED PARAMETERS ==========
 parameter BUFFER_SIZE = 1024;
 parameter LONG_CHIRP_SAMPLES = 3000;  // Still 3000 samples total
-parameter SHORT_CHIRP_SAMPLES = 50;   // 0.5µs @ 100MHz
+parameter SHORT_CHIRP_SAMPLES = 50;   // 0.5ï¿½s @ 100MHz
 parameter OVERLAP_SAMPLES = 128;      // Standard for 1024-pt FFT
 parameter SEGMENT_ADVANCE = BUFFER_SIZE - OVERLAP_SAMPLES;  // 896 samples
 parameter DEBUG = 1;                  // Debug output control
@@ -164,11 +164,13 @@ always @(posedge clk or negedge reset_n) begin
                     state <= ST_COLLECT_DATA;
                     total_segments <= use_long_chirp ? LONG_SEGMENTS[2:0] : SHORT_SEGMENTS[2:0];
                     
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] Starting %s chirp, segments: %d",
                              use_long_chirp ? "LONG" : "SHORT", 
                              use_long_chirp ? LONG_SEGMENTS : SHORT_SEGMENTS);
                     $display("[MULTI_SEG_FIXED] Overlap: %d samples, Advance: %d samples",
                              OVERLAP_SAMPLES, SEGMENT_ADVANCE);
+                    `endif
                 end
             end
             
@@ -184,10 +186,12 @@ always @(posedge clk or negedge reset_n) begin
                     
                     // Debug: Show first few samples
                     if (chirp_samples_collected < 10 && buffer_write_ptr < 10) begin
+                        `ifdef SIMULATION
                         $display("[MULTI_SEG_FIXED] Store[%0d]: I=%h Q=%h", 
                                  buffer_write_ptr, 
                                  ddc_i[17:2] + ddc_i[1], 
                                  ddc_q[17:2] + ddc_q[1]);
+                        `endif
                     end
                     
                     // Check conditions based on chirp type
@@ -202,21 +206,27 @@ always @(posedge clk or negedge reset_n) begin
                             segment_request <= current_segment[1:0];  // Use lower 2 bits
                             mem_request <= 1;
                             
+                            `ifdef SIMULATION
                             $display("[MULTI_SEG_FIXED] Segment %d ready: %d samples collected",
                                      current_segment, chirp_samples_collected);
+                            `endif
                         end
                         
                         // Check if end of chirp reached
                         if (chirp_samples_collected >= LONG_CHIRP_SAMPLES - 1) begin
                             chirp_complete <= 1;
+                            `ifdef SIMULATION
                             $display("[MULTI_SEG_FIXED] End of long chirp reached");
+                            `endif
                         end
                     end else begin
                         // SHORT CHIRP: Only 50 samples, then zero-pad
                         if (chirp_samples_collected >= SHORT_CHIRP_SAMPLES - 1) begin
                             state <= ST_ZERO_PAD;
+                            `ifdef SIMULATION
                             $display("[MULTI_SEG_FIXED] Short chirp: collected %d samples, starting zero-pad",
                                      chirp_samples_collected + 1);
+                            `endif
                         end
                     end
                 end
@@ -235,7 +245,9 @@ always @(posedge clk or negedge reset_n) begin
                     state <= ST_WAIT_REF;
                     segment_request <= 0;  // Only one segment for short chirp
                     mem_request <= 1;
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] Zero-pad complete, buffer full");
+                    `endif
                 end
             end
             
@@ -248,8 +260,10 @@ always @(posedge clk or negedge reset_n) begin
                     fft_start <= 1;
                     state <= ST_PROCESSING;
                     
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] Reference ready, starting processing segment %d",
                              current_segment);
+                    `endif
                 end
             end
             
@@ -266,10 +280,12 @@ always @(posedge clk or negedge reset_n) begin
                     
                     // Debug every 100 samples
                     if (buffer_read_ptr % 100 == 0) begin
+                        `ifdef SIMULATION
                         $display("[MULTI_SEG_FIXED] Processing[%0d]: ADC I=%h Q=%h",
                                 buffer_read_ptr,
                                 input_buffer_i[buffer_read_ptr],
                                 input_buffer_q[buffer_read_ptr]);
+                        `endif
                     end
                     
                     buffer_read_ptr <= buffer_read_ptr + 1;
@@ -282,8 +298,10 @@ always @(posedge clk or negedge reset_n) begin
                     buffer_has_data <= 0;
                     state <= ST_WAIT_FFT;  // CRITICAL: Wait for FFT completion
                     
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] Finished feeding %d samples to FFT, waiting...",
                              BUFFER_SIZE);
+                    `endif
                 end
             end
             
@@ -291,8 +309,10 @@ always @(posedge clk or negedge reset_n) begin
                 // Wait for the processing chain to complete (2159 cycles latency)
                 if (fft_pc_valid) begin
                     state <= ST_OUTPUT;
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] FFT processing complete for segment %d",
                              current_segment);
+                    `endif
                 end
             end
             
@@ -303,8 +323,10 @@ always @(posedge clk or negedge reset_n) begin
                 pc_valid <= 1;
                 segment_done <= 1;
                 
+                `ifdef SIMULATION
                 $display("[MULTI_SEG_FIXED] Output segment %d: I=%h Q=%h",
                          current_segment, fft_pc_i, fft_pc_q);
+                `endif
                 
                 // Check if we need more segments
                 if (current_segment < total_segments - 1 || !chirp_complete) begin
@@ -312,8 +334,10 @@ always @(posedge clk or negedge reset_n) begin
                 end else begin
                     // All segments complete
                     state <= ST_IDLE;
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] All %d segments complete",
                              total_segments);
+                    `endif
                 end
             end
             
@@ -334,8 +358,10 @@ always @(posedge clk or negedge reset_n) begin
                     // Start writing after the overlap
                     buffer_write_ptr <= OVERLAP_SAMPLES;
                     
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] Overlap-save: kept %d samples, write_ptr=%d",
                              OVERLAP_SAMPLES, OVERLAP_SAMPLES);
+                    `endif
                 end else begin
                     // Short chirp: only one segment
                     buffer_write_ptr <= 0;
@@ -344,8 +370,10 @@ always @(posedge clk or negedge reset_n) begin
                 // Continue collecting or finish
                 if (!chirp_complete) begin
                     state <= ST_COLLECT_DATA;
+                    `ifdef SIMULATION
                     $display("[MULTI_SEG_FIXED] Starting segment %d/%d",
                              current_segment + 1, total_segments);
+                    `endif
                 end else begin
                     state <= ST_IDLE;
                 end
@@ -386,6 +414,7 @@ matched_filter_processing_chain m_f_p_c(
 );
 
 // ========== DEBUG MONITOR ==========
+`ifdef SIMULATION
 reg [31:0] dbg_cycles;
 always @(posedge clk or negedge reset_n) begin
     if (!reset_n) begin
@@ -401,6 +430,7 @@ always @(posedge clk or negedge reset_n) begin
         end
     end
 end
+`endif
 
 // ========== OUTPUT CONNECTIONS ==========
 assign pc_i_w = fft_pc_i;

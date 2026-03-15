@@ -340,6 +340,7 @@ assign ddc_diagnostics = {saturation_count, error_counter[4:0]};
 // ============================================================================
 reg [31:0] debug_cic_count, debug_fir_count, debug_bb_count;
 
+`ifdef SIMULATION
 always @(posedge clk_100m) begin
     
     if (fir_valid_i && debug_fir_count < 20) begin
@@ -353,10 +354,12 @@ always @(posedge clk_100m) begin
                  baseband_i, baseband_q, debug_bb_count);
     end
 end
+`endif
 
 // In ddc_400m.v, add these debug signals:
 
-// Debug monitoring
+// Debug monitoring (simulation only)
+`ifdef SIMULATION
 reg [31:0] debug_adc_count = 0;
 reg [31:0] debug_baseband_count = 0;
 
@@ -375,6 +378,7 @@ always @(posedge clk_100m) begin
                  baseband_i, baseband_q, debug_baseband_count, $time);
     end
 end
+`endif
 
 
 endmodule
