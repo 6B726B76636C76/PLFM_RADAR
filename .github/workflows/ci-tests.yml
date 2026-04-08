@@ -67,7 +67,7 @@ jobs:
         working-directory: 9_Firmware/9_1_Microcontroller/tests
 
   # ===========================================================================
-  # FPGA RTL Regression (23 testbenches + lint)
+  # FPGA RTL Regression (25 testbenches + lint)
   # ===========================================================================
   fpga-regression:
     name: FPGA Regression

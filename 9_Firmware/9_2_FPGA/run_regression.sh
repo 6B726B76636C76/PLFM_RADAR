@@ -403,6 +403,18 @@ run_test "DDC Chain (NCO→CIC→FIR)" \
     tb/tb_ddc_cosim.v ddc_400m.v nco_400m_enhanced.v \
     cic_decimator_4x_enhanced.v fir_lowpass.v cdc_modules.v
 
+# Real-data co-simulation: committed golden hex vs RTL (exact match required).
+# These catch architecture mismatches (e.g. 32-pt → dual 16-pt Doppler FFT)
+# that self-blessing golden-generate/compare tests cannot detect.
+run_test "Doppler Real-Data (ADI CN0566, exact match)" \
+    tb/tb_doppler_realdata.vvp \
+    tb/tb_doppler_realdata.v doppler_processor.v xfft_16.v fft_engine.v
+
+run_test "Full-Chain Real-Data (decim→Doppler, exact match)" \
+    tb/tb_fullchain_realdata.vvp \
+    tb/tb_fullchain_realdata.v range_bin_decimator.v \
+    doppler_processor.v xfft_16.v fft_engine.v
+
 if [[ "$QUICK" -eq 0 ]]; then
     # Golden generate
     run_test "Receiver (golden generate)" \
